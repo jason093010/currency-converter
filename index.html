@@ -3,15 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>即時匯率換算 (Converter Neo)</title>
+    <title>即時匯率換算 Neo</title>
     <style>
+        /* CSS 樣式：還原深色模式與介面配置 */
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent; 
+            /* 防止手機端點擊出現藍色高亮 */
+            -webkit-tap-highlight-color: transparent;
         }
+
         body {
             background-color: #000000;
             color: #ffffff;
@@ -19,9 +22,10 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            overscroll-behavior-y: none; 
-            position: relative;
+            /* 防止手機網頁下拉刷新影響體驗 */
+            overscroll-behavior-y: none;
         }
+
         .container {
             width: 100%;
             max-width: 400px;
@@ -30,173 +34,215 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
-            height: 100vh;
-            justify-content: center;
+            height: 100vh; /* 佔滿全螢幕 */
+            justify-content: flex-end; /* 鍵盤在下方 */
         }
+
+        /* 頁首：標題與時間 */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
         }
+
         .title {
             font-size: 1.2rem;
             font-weight: bold;
         }
+
         .timestamp {
             font-size: 0.8rem;
-            color: #4CAF50;
+            color: #4CAF50; /* 綠色時間 */
         }
+
+        /* 匯率列樣式 */
+        .currency-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-grow: 1; /* 佔用剩餘空間 */
+            justify-content: center;
+        }
+
         .currency-row {
             display: flex;
             align-items: center;
-            background-color: #2c2c2e;
+            background-color: #1C1C1E; /* 深灰色背景 */
             border-radius: 12px;
-            padding: 12px 15px;
-            transition: all 0.1s ease;
+            padding: 15px;
+            cursor: pointer;
+            transition: background-color 0.1s, border 0.1s;
+            border: 1px solid transparent;
         }
+
+        /* 當前選中的輸入列 */
         .currency-row.active {
-            background-color: #3d3d29;
-            border: 1px solid #7a6021;
+            background-color: #2c2c2e;
+            border: 1px solid #7a6021; /* 螢幕中亮色邊框 */
         }
+        
         .currency-row.active .amount {
-            color: #f7b731;
+            color: #f7b731; /* 選中時數字變色 */
         }
-        /* 左側：選擇貨幣區塊 */
-        .currency-selector {
+
+        /* 國旗/幣別區塊 */
+        .currency-meta {
             display: flex;
             align-items: center;
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 8px;
+            gap: 15px;
+            flex-grow: 0;
+            flex-shrink: 0;
         }
-        .currency-selector:active {
-            background-color: rgba(255, 255, 255, 0.1);
-            transform: scale(0.95);
-        }
-        .flag {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
+
+        .flag-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%; /* 圓形國旗 */
+            background-color: #555;
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-right: 10px;
             font-size: 1.2rem;
+            border: 1px solid #333;
         }
+
+        .code-and-name {
+            display: flex;
+            flex-direction: column;
+        }
+
         .code {
             font-size: 1.1rem;
             font-weight: 500;
         }
-        .dropdown-icon {
-            font-size: 0.7rem;
-            margin-left: 5px;
+
+        .name {
+            font-size: 0.8rem;
             color: #888;
         }
-        /* 右側：數字顯示區塊 */
+
+        /* 數字顯示區塊 */
         .amount-container {
             flex-grow: 1;
-            display: flex;
-            justify-content: flex-end;
-            padding-left: 10px;
-            cursor: pointer;
+            text-align: right;
+            padding-left: 15px;
         }
+
         .amount {
             font-size: 1.3rem;
-            text-align: right;
+            border: none;
+            background: transparent;
             color: #ffffff;
-            word-break: break-all;
+            width: 100%;
+            text-align: right;
+            outline: none;
         }
-        
-        /* 鍵盤區塊 */
+
+        /* 虛擬鍵盤 */
         .keypad {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 10px;
             margin-top: 10px;
         }
+
         .btn {
-            background-color: #333333;
+            background-color: #3A3A3C; /* 灰色按鈕 */
             color: #ffffff;
             border: none;
-            border-radius: 25px;
+            border-radius: 25px; /* 圓角 */
             font-size: 1.5rem;
             padding: 15px 0;
             cursor: pointer;
             user-select: none;
-            transition: transform 0.05s ease, background-color 0.1s;
+            transition: background-color 0.1s;
         }
-        .btn:active {
-            background-color: #555555;
-            transform: scale(0.92);
-        }
-        .btn.operator { background-color: #ff9f0a; color: white; }
-        .btn.operator:active { background-color: #cc7f08; transform: scale(0.92); }
-        .btn.action { background-color: #a5a5a5; color: #000; }
-        .btn.action:active { background-color: #888888; transform: scale(0.92); }
-        .btn.zero { grid-column: span 2; border-radius: 25px; }
 
-        /* 彈出選單 (Modal) */
+        /* 按鍵點擊反饋 */
+        .btn:active {
+            background-color: #555;
+        }
+
+        /* 運算子按鈕 */
+        .btn.operator {
+            background-color: #FF9F0A; /* 橘色 */
+            color: white;
+        }
+        
+        .btn.operator:active {
+            background-color: #cc7f08;
+        }
+
+        /* 功能按鈕 C, delete */
+        .btn.action {
+            background-color: #a5a5a5;
+            color: #000;
+        }
+        
+        .btn.action:active {
+            background-color: #888;
+        }
+
+        /* 0 鍵佔兩格 */
+        .btn.zero {
+            grid-column: span 2;
+        }
+
+        /* 貨幣選擇彈窗 (Modal) */
         .modal-overlay {
-            display: none;
+            display: none; /* 預設隱藏 */
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background-color: rgba(0, 0, 0, 0.7);
             z-index: 1000;
             justify-content: center;
-            align-items: flex-end;
+            align-items: center;
             opacity: 0;
-            transition: opacity 0.2s ease;
+            transition: opacity 0.2s;
         }
+
         .modal-overlay.show {
             display: flex;
             opacity: 1;
         }
+
         .modal-content {
             background-color: #1c1c1e;
-            width: 100%;
-            max-width: 400px;
-            height: 60vh;
-            border-radius: 20px 20px 0 0;
+            width: 80%;
+            max-width: 300px;
+            max-height: 80vh;
+            border-radius: 20px;
+            overflow-y: auto; /* 超出可滾動 */
             padding: 20px;
-            display: flex;
-            flex-direction: column;
-            transform: translateY(100%);
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid #333;
         }
-        .modal-overlay.show .modal-content {
-            transform: translateY(0);
-        }
+
         .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-align: center;
             margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #333;
+            color: #fff;
         }
-        .close-btn {
-            background: none; border: none; color: #0a84ff; font-size: 1rem; cursor: pointer;
-        }
-        .currency-list-container {
-            overflow-y: auto;
-            flex-grow: 1;
-        }
-        .modal-currency-item {
+
+        .currency-option {
             display: flex;
             align-items: center;
-            padding: 15px 10px;
-            border-bottom: 1px solid #2c2c2e;
+            gap: 10px;
+            padding: 12px;
             cursor: pointer;
+            border-radius: 10px;
+            transition: background-color 0.1s;
         }
-        .modal-currency-item:active {
+
+        .currency-option:hover {
             background-color: #333;
         }
-        .modal-currency-name {
-            margin-left: 15px;
-            color: #aaa;
-            font-size: 0.9rem;
-        }
+
     </style>
 </head>
 <body>
@@ -205,15 +251,15 @@
     <div class="header">
         <div>
             <div class="title">Converter Neo</div>
-            <div class="timestamp" id="last-update">正在獲取最新匯率...</div>
+            <div class="timestamp" id="last-update">正在獲取數據...</div>
         </div>
     </div>
 
-    <div id="currency-list"></div>
+    <div class="currency-list" id="currencyList"></div>
 
     <div class="keypad">
         <button class="btn action" onclick="handleInput('C')">C</button>
-        <button class="btn action" onclick="handleInput('BACK')">←</button>
+        <button class="btn action" onclick="handleInput('delete')">←</button>
         <button class="btn action" onclick="handleInput('%')">%</button>
         <button class="btn operator" onclick="handleInput('/')">÷</button>
 
@@ -238,222 +284,294 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="currency-modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>選擇貨幣</h3>
-            <button class="close-btn" onclick="closeModal()">取消</button>
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal-content" id="modalContent">
+        <div class="modal-header">選擇貨幣</div>
         </div>
-        <div class="currency-list-container" id="modal-currency-list">
-            </div>
-    </div>
 </div>
 
 <script>
-    // 完整的貨幣資料庫 (可自行擴充)
+    // JS 邏輯：處理匯率獲取、介面渲染、計算與輸入
+
+    // 完整的貨幣資料庫 (代碼, Emoji國旗, 名稱)
     const allCurrencies = {
-        'USD': { flag: '🇺🇸', name: '美金 (US Dollar)' },
-        'TWD': { flag: '🇹🇼', name: '新台幣 (New Taiwan Dollar)' },
-        'JPY': { flag: '🇯🇵', name: '日圓 (Japanese Yen)' },
-        'EUR': { flag: '🇪🇺', name: '歐元 (Euro)' },
-        'KRW': { flag: '🇰🇷', name: '韓元 (South Korean Won)' },
-        'CNY': { flag: '🇨🇳', name: '人民幣 (Chinese Yuan)' },
-        'GBP': { flag: '🇬🇧', name: '英鎊 (British Pound)' },
-        'AUD': { flag: '🇦🇺', name: '澳幣 (Australian Dollar)' },
-        'CAD': { flag: '🇨🇦', name: '加幣 (Canadian Dollar)' },
-        'HKD': { flag: '🇭🇰', name: '港幣 (Hong Kong Dollar)' },
-        'SGD': { flag: '🇸🇬', name: '新加坡幣 (Singapore Dollar)' },
-        'THB': { flag: '🇹🇭', name: '泰銖 (Thai Baht)' },
-        'MYR': { flag: '🇲🇾', name: '馬來西亞令吉 (Malaysian Ringgit)' },
-        'VND': { flag: '🇻🇳', name: '越南盾 (Vietnamese Dong)' },
-        'PHP': { flag: '🇵🇭', name: '菲律賓披索 (Philippine Peso)' }
+        'USD': { flag: '🇺🇸', name: '美金' },
+        'TWD': { flag: '🇹🇼', name: '新台幣' },
+        'JPY': { flag: '🇯🇵', name: '日圓' },
+        'KRW': { flag: '🇰🇷', name: '韓圓' },
+        'CNY': { flag: '🇨🇳', name: '人民幣' },
+        'EUR': { flag: '🇪🇺', name: '歐元' },
+        'GBP': { flag: '🇬🇧', name: '英鎊' },
+        'AUD': { flag: '🇦🇺', name: '澳幣' },
+        'HKD': { flag: '🇭🇰', name: '港幣' },
+        'SGD': { flag: '🇸🇬', name: '新加坡幣' }
     };
 
-    // 畫面上預設顯示的 5 個貨幣欄位
+    // 畫面上預設顯示的 5 個插槽的貨幣代碼
     let displaySlots = ['JPY', 'TWD', 'KRW', 'CNY', 'USD'];
     
+    // 實時匯率快取
     let exchangeRates = {};
-    let activeCurrency = 'USD'; // 當前作為計算基準的貨幣
-    let currentInput = '10';
-    let changingSlotIndex = null; // 紀錄目前正在更改哪一個欄位的貨幣
+    let lastUpdatedTime = null;
 
+    // 當前作為輸入基準的插槽索引 (0-4)
+    let activeSlotIndex = 1; // 預設新台幣 (TWD) 為輸入源
+    let currentInputString = "1"; // 當前的輸入緩衝區 (字串形式)
+
+    // 初始化應用程式
     async function init() {
-        renderCurrencies();
-        buildModalList();
-        await fetchRates();
-        updateDisplay();
+        renderSlots();
+        await fetchExchangeRates(); // 異步獲取數據
+        updateAllCalculations(); // 初始化計算
     }
 
-    // 獲取最新 API 匯率數據
-    async function fetchRates() {
+    // --- 數據獲取邏輯 ---
+
+    async function fetchExchangeRates() {
         try {
+            // 使用一個對客戶端友好的公開 API：exchangerate-api.com 的免費接口
+            // 該接口允許 CORS 請求，不需要後端代理。
             const response = await fetch('https://open.er-api.com/v6/latest/USD');
             const data = await response.json();
             
             if (data && data.rates) {
                 exchangeRates = data.rates;
-                const updateTime = new Date(data.time_last_update_unix * 1000);
-                document.getElementById('last-update').innerText = 
-                    `${updateTime.getFullYear()}/${(updateTime.getMonth()+1).toString().padStart(2, '0')}/${updateTime.getDate().toString().padStart(2, '0')} ${updateTime.getHours().toString().padStart(2, '0')}:${updateTime.getMinutes().toString().padStart(2, '0')} 更新`;
+                lastUpdatedTime = new Date(data.time_last_update_unix * 1000); // 轉換 API 時間戳
+                updateTimestampDisplay();
             }
         } catch (error) {
-            console.error("無法取得匯率資料:", error);
-            document.getElementById('last-update').innerText = "匯率更新失敗，請檢查網路狀態";
-            document.getElementById('last-update').style.color = "#ff453a";
+            console.error("無法抓取實時匯率數據:", error);
+            document.getElementById('last-update').innerText = "匯率載入失敗 (離線模式)";
+            document.getElementById('last-update').style.color = "#ff453a"; // 亮紅色提示
+            
+            // 這裡可以選擇載入離線預設數據，或保持 0。此處保持 0。
         }
     }
 
-    // 渲染主畫面的 5 個貨幣欄位
-    function renderCurrencies() {
-        const listDiv = document.getElementById('currency-list');
-        listDiv.innerHTML = '';
+    function updateTimestampDisplay() {
+        if (!lastUpdatedTime) return;
+        const timeStr = lastUpdatedTime.getFullYear() + '/' + 
+                        (lastUpdatedTime.getMonth() + 1).toString().padStart(2, '0') + '/' + 
+                        lastUpdatedTime.getDate().toString().padStart(2, '0') + ' ' + 
+                        lastUpdatedTime.getHours().toString().padStart(2, '0') + ':' + 
+                        lastUpdatedTime.getMinutes().toString().padStart(2, '0');
+        document.getElementById('last-update').innerText = timeStr + ' 更新';
+    }
+
+    // --- 介面渲染邏輯 ---
+
+    // 渲染 5 個插槽
+    function renderSlots() {
+        const listContainer = document.getElementById('currencyList');
+        listContainer.innerHTML = ''; // 清空
 
         displaySlots.forEach((code, index) => {
-            const currency = allCurrencies[code];
-            const row = document.createElement('div');
-            row.className = `currency-row ${code === activeCurrency ? 'active' : ''}`;
-
-            // 左側：點擊開啟更換貨幣選單 (使用 stopPropagation 防止觸發右側的切換輸入)
-            const selectorDiv = document.createElement('div');
-            selectorDiv.className = 'currency-selector';
-            selectorDiv.onclick = (e) => {
-                e.stopPropagation(); 
-                openModal(index);
-            };
-            selectorDiv.innerHTML = `
-                <div class="flag">${currency.flag}</div>
-                <div class="code">${code}</div>
-                <div class="dropdown-icon">▼</div>
+            const currencyData = allCurrencies[code];
+            
+            // 建立 HTML 元素
+            const rowDiv = document.createElement('div');
+            rowDiv.className = `currency-row ${index === activeSlotIndex ? 'active' : ''}`;
+            
+            // 左側金屬資訊 (可點擊切換貨幣)
+            const metaDiv = document.createElement('div');
+            metaDiv.className = 'currency-meta';
+            metaDiv.innerHTML = `
+                <div class="flag-icon">${currencyData.flag}</div>
+                <div class="code-and-name">
+                    <span class="code">${code}</span>
+                    <span class="name">${currencyData.name}</span>
+                </div>
             `;
+            // 點擊左側彈出選擇視窗
+            metaDiv.onclick = (e) => { e.stopPropagation(); openModal(index); };
 
-            // 右側：點擊將該貨幣設為主動輸入狀態
-            const amountContainer = document.createElement('div');
-            amountContainer.className = 'amount-container';
-            amountContainer.onclick = () => setActiveCurrency(code);
-            amountContainer.innerHTML = `<div class="amount" id="amount-${code}">0</div>`;
-
-            row.appendChild(selectorDiv);
-            row.appendChild(amountContainer);
-            listDiv.appendChild(row);
+            // 右側數字顯示 (點擊整個 row 切換輸入基準)
+            const amountDiv = document.createElement('div');
+            amountContainer className = 'amount-container';
+            const amountInput = document.createElement('input');
+            amountInput.className = 'amount';
+            amountInput.type = 'text';
+            amountInput.value = '0';
+            amountInput.readOnly = true; // 使用自定義鍵盤，禁用原生輸入
+            amountInput.id = `slot-amount-${index}`;
+            
+            amountContainer.appendChild(amountInput);
+            
+            rowDiv.appendChild(metaDiv);
+            rowDiv.appendChild(amountContainer);
+            
+            // 點擊 row（除左側按鈕外）將該列設為 active
+            rowDiv.onclick = () => setActiveSlot(index);
+            
+            listContainer.appendChild(rowDiv);
         });
     }
 
-    // 設定當前基準貨幣
-    function setActiveCurrency(code) {
-        activeCurrency = code;
-        currentInput = document.getElementById(`amount-${code}`).innerText.replace(/,/g, '');
-        renderCurrencies();
-        updateDisplay();
-    }
-
-    // --- 彈出選單 (Modal) 邏輯 ---
-
-    function buildModalList() {
-        const modalList = document.getElementById('modal-currency-list');
-        modalList.innerHTML = '';
+    // 切換輸入基準列
+    function setActiveSlot(index) {
+        if (index === activeSlotIndex) return;
         
-        for (const [code, info] of Object.entries(allCurrencies)) {
-            const item = document.createElement('div');
-            item.className = 'modal-currency-item';
-            item.onclick = () => selectNewCurrency(code);
-            item.innerHTML = `
-                <div class="flag">${info.flag}</div>
-                <div class="code">${code}</div>
-                <div class="modal-currency-name">${info.name}</div>
-            `;
-            modalList.appendChild(item);
-        }
+        activeSlotIndex = index;
+        const activeInput = document.getElementById(`slot-amount-${index}`);
+        // 將緩衝區設為該插槽當前的值，方便連續操作
+        currentInputString = activeInput.value.replace(/,/g, ''); // 移除千分位
+
+        renderSlots(); // 重新渲染以更新 active 樣式
     }
 
-    function openModal(slotIndex) {
-        changingSlotIndex = slotIndex;
-        document.getElementById('currency-modal').classList.add('show');
-    }
+    // --- 計算邏輯：雙向多點轉換的核心 ---
 
-    function closeModal() {
-        document.getElementById('currency-modal').classList.remove('show');
-        changingSlotIndex = null;
-    }
-
-    // 當使用者在選單中選了新貨幣
-    function selectNewCurrency(newCode) {
-        // 如果選到的貨幣剛好是正在計算的基準貨幣，就將基準轉移過去
-        if (displaySlots[changingSlotIndex] === activeCurrency) {
-            activeCurrency = newCode;
-        }
+    function updateAllCalculations() {
+        const baseSlotIndex = activeSlotIndex;
+        const baseAmount = parseFloat(currentInputString) || 0;
+        const baseCode = displaySlots[baseSlotIndex];
         
-        displaySlots[changingSlotIndex] = newCode; // 更新該欄位的貨幣代碼
-        closeModal();
-        renderCurrencies();
-        updateDisplay();
+        // 獲取數據前，所有設為 0
+        if (!exchangeRates[baseCode]) {
+             displaySlots.forEach((code, index) => {
+                document.getElementById(`slot-amount-${index}`).value = index === activeSlotIndex ? currentInputString : '0';
+            });
+            return;
+        }
+
+        // 以美元(USD)作為中轉基準進行交叉匯率計算
+        // 邏輯：目標貨幣值 = (基準金額 / 基準對美元匯率) * 目標對美元匯率
+        const baseRateToUSD = exchangeRates[baseCode]; // 基準幣別 / USD
+
+        displaySlots.forEach((targetCode, index) => {
+            const amountElement = document.getElementById(`slot-amount-${index}`);
+            
+            if (index === baseSlotIndex) {
+                // 如果是當前輸入列，保持輸入字串（包括中間可能出現的小數點）
+                amountElement.value = formatInputNumber(currentInputString);
+            } else {
+                const targetRateToUSD = exchangeRates[targetCode]; // 目標幣別 / USD
+                
+                if (targetRateToUSD) {
+                    const convertedAmount = (baseAmount / baseRateToUSD) * targetRateToUSD;
+                    amountElement.value = formatOutputNumber(convertedAmount, targetCode);
+                } else {
+                    amountElement.value = "0"; // 抓不到該幣別數據
+                }
+            }
+        });
     }
 
-    // 點擊黑色半透明背景也能關閉選單
-    document.getElementById('currency-modal').addEventListener('click', function(e) {
-        if (e.target === this) closeModal();
-    });
+    // 格式化輸出數字 (加千分位，限制小數點)
+    function formatOutputNumber(num, code) {
+        // 根據幣別調整小數點位數 (例如：JPY 通常不顯示小數點)
+        let fractionalDigits = 2;
+        if (code === 'JPY' || code === 'KRW') fractionalDigits = 0;
+        
+        return num.toLocaleString('en-US', {
+            minimumFractionDigits: fractionalDigits,
+            maximumFractionDigits: fractionalDigits
+        });
+    }
+    
+    // 格式化輸入數字 (僅處理千分位，保留可能正在輸入的小數點 '.')
+    function formatInputNumber(numStr) {
+        if (numStr === "") return "0";
+        if (numStr.endsWith('.')) {
+             // 如果結尾是 '.', 則保留 '.', 並格式化整數部分
+            const parts = numStr.split('.');
+            return (parseFloat(parts[0]) || 0).toLocaleString('en-US') + '.';
+        }
+        return (parseFloat(numStr) || 0).toLocaleString('en-US');
+    }
 
-    // --- 鍵盤與計算邏輯 ---
+    // --- 虛擬鍵盤輸入處理邏輯 ---
 
     function handleInput(key) {
         if (key === 'C') {
-            currentInput = '0';
-        } else if (key === 'BACK') {
-            currentInput = currentInput.length > 1 ? currentInput.slice(0, -1) : '0';
-        } else if (key === '=') {
-            try {
-                let expression = currentInput.replace(/×/g, '*').replace(/÷/g, '/');
-                const result = new Function('return ' + expression)();
-                currentInput = String(result);
-            } catch (e) {
-                currentInput = 'Error';
+            currentInputString = "0";
+        } else if (key === 'delete') {
+            currentInputString = currentInputString.length > 1 ? currentInputString.slice(0, -1) : "0";
+        } else if (key === '.') {
+            // 防止輸入多個小數點
+            if (!currentInputString.includes('.')) {
+                currentInputString += ".";
             }
-        } else if (['+', '-', '*', '/', '%'].includes(key)) {
-            const lastChar = currentInput.slice(-1);
-            if (!['+', '-', '*', '/', '%', '.'].includes(lastChar)) {
-                 currentInput += key === '*' ? '×' : key === '/' ? '÷' : key;
-            }
-        } else {
-            if (currentInput === '0' && key !== '.') {
-                currentInput = key;
+        } else if (/[0-9]/.test(key)) {
+            // 輸入數字
+            if (currentInputString === "0") {
+                currentInputString = key;
             } else {
-                currentInput += key;
+                currentInputString += key;
+            }
+        } else if (key === '=') {
+            // 簡單的計算機功能 (此處暫未實作計算表達式，僅更新顯示)
+            try {
+                // 此處留白供未來擴充
+            } catch (e) {
+                currentInputString = "Error";
             }
         }
-        updateDisplay();
-    }
-
-    function updateDisplay() {
-        const activeValue = parseFloat(currentInput);
         
-        displaySlots.forEach(code => {
-            const amountEl = document.getElementById(`amount-${code}`);
-            if (!amountEl) return;
-
-            if (code === activeCurrency) {
-                amountEl.innerText = currentInput;
-            } else {
-                if (isNaN(activeValue) || !exchangeRates[code] || !exchangeRates[activeCurrency]) {
-                    amountEl.innerText = '0';
-                    return;
-                }
-                const rateToUSD = exchangeRates[code];
-                const activeToUSD = exchangeRates[activeCurrency];
-                const calculatedValue = (rateToUSD / activeToUSD) * activeValue;
-                
-                amountEl.innerText = formatNumber(calculatedValue);
-            }
-        });
+        updateAllCalculations(); // 更新所有插槽
     }
 
-    function formatNumber(num) {
-        return num.toLocaleString('en-US', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 2
-        });
+    // --- 貨幣選擇彈窗邏輯 ---
+
+    let currentChangingSlotIndex = null;
+
+    function openModal(index) {
+        currentChangingSlotIndex = index;
+        const modalOverlay = document.getElementById('modalOverlay');
+        
+        // 生成選項
+        const modalContent = document.getElementById('modalContent');
+        // 清除舊的選項（保持標題）
+        const header = modalContent.querySelector('.modal-header');
+        modalContent.innerHTML = '';
+        modalContent.appendChild(header);
+
+        // 遍歷所有貨幣生成選項
+        for (const [code, info] of Object.entries(allCurrencies)) {
+            const optionDiv = document.createElement('div');
+            optionDiv.className = 'currency-option';
+            optionDiv.innerHTML = `
+                <div class="flag-icon">${info.flag}</div>
+                <div class="code-and-name">
+                    <span class="code">${code}</span>
+                    <span class="name">${info.name}</span>
+                </div>
+            `;
+            optionDiv.onclick = () => selectNewCurrency(code);
+            modalContent.appendChild(optionDiv);
+        }
+        
+        modalOverlay.classList.add('show');
     }
 
+    function closeModal(e) {
+        // 如果點擊的是 Overlay 本身 (背景)，則關閉
+        if (!e || e.target === document.getElementById('modalOverlay')) {
+             document.getElementById('modalOverlay').classList.remove('show');
+             currentChangingSlotIndex = null;
+        }
+    }
+
+    function selectNewCurrency(newCode) {
+        if (currentChangingSlotIndex === null) return;
+        
+        // 更新數據
+        displaySlots[currentChangingSlotIndex] = newCode;
+        
+        // 如果替換的是當前 Active 的欄位，需重置緩衝區
+        if (currentChangingSlotIndex === activeSlotIndex) {
+            currentInputString = "1";
+        }
+        
+        renderSlots(); // 重新渲染插槽
+        updateAllCalculations(); // 重新計算
+        closeModal(); // 關閉彈窗
+    }
+
+    // 啟動應用
     init();
+
 </script>
+
 </body>
 </html>
